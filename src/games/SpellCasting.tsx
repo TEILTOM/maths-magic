@@ -12,7 +12,7 @@ import StarRating from '../components/ui/StarRating'
 interface Props { topicId: TopicId; difficulty: Difficulty; onComplete: () => void }
 
 const TOTAL_QUESTIONS = 10
-const TIME_PER_QUESTION = 15
+const TIME_PER_QUESTION = 30
 
 export default function SpellCasting({ topicId, difficulty, onComplete }: Props) {
   const profile = useGameStore(s => s.profile)!
