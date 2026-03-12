@@ -33,6 +33,7 @@ export default function Dashboard() {
   const currentMastery = getYearMastery(profile.currentYear)
   const [isEditingName, setIsEditingName] = useState(false)
   const [draftName, setDraftName] = useState(profile.name)
+  const [showResetConfirm, setShowResetConfirm] = useState(false)
 
   function startEditName() {
     setDraftName(profile.name)
@@ -51,6 +52,11 @@ export default function Dashboard() {
       updateProfile({ name: next })
     }
     setIsEditingName(false)
+  }
+
+  function resetGame() {
+    localStorage.removeItem('maths-magic-save')
+    window.location.href = '/'
   }
 
   return (
@@ -242,7 +248,36 @@ export default function Dashboard() {
             🎩 Trick Book
           </Button>
         </div>
+
+        {/* Hidden reset */}
+        <div className="mt-6 text-center">
+          <button
+            type="button"
+            onClick={() => setShowResetConfirm(true)}
+            className="text-[10px] text-white/20 hover:text-white/40 transition-colors"
+          >
+            reset game
+          </button>
+        </div>
       </div>
+
+      {showResetConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+          <div className="max-w-sm w-full rounded-2xl border border-white/10 bg-indigo-950 p-5 text-center shadow-2xl">
+            <div className="text-3xl mb-2">⚠️</div>
+            <h3 className="text-white font-fredoka text-xl mb-2">Start from scratch?</h3>
+            <p className="text-white/70 text-sm mb-4">This will clear all saved progress on this device.</p>
+            <div className="flex gap-3">
+              <Button variant="ghost" size="sm" onClick={() => setShowResetConfirm(false)} className="flex-1">
+                Cancel
+              </Button>
+              <Button variant="gold" size="sm" onClick={resetGame} className="flex-1">
+                Yes, reset
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
