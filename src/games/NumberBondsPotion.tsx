@@ -25,14 +25,45 @@ function shuffle<T>(arr: T[]): T[] {
   return copy
 }
 
+/**
+ * Generate 6–8 tile options that always include a valid pair summing to target.
+ * For large targets (50, 100) we restrict to "nice" round numbers so children
+ * can actually spot the pair instead of hunting through 3+97 style combos.
+ */
 function generateOptions(target: number): number[] {
-  const valid = Array.from({ length: target - 1 }, (_, i) => i + 1)
-  const validPairBases = valid.filter(n => n !== target - n)
-  const a = validPairBases[Math.floor(Math.random() * validPairBases.length)]
+  let candidatePool: number[]
+
+  if (target === 100) {
+    // Multiples of 10: 10, 20, 30, 40, 60, 70, 80, 90
+    candidatePool = [10, 20, 30, 40, 60, 70, 80, 90]
+  } else if (target === 50) {
+    // Multiples of 5: 5, 10, 15, 20, 30, 35, 40, 45
+    candidatePool = [5, 10, 15, 20, 30, 35, 40, 45]
+  } else {
+    // All integers 1 … target-1
+    candidatePool = Array.from({ length: target - 1 }, (_, i) => i + 1)
+  }
+
+  // Valid pair bases: a < b, a + b === target, both in candidatePool
+  const pairBases = candidatePool.filter(
+    n => n < target - n && candidatePool.includes(target - n),
+  )
+
+  // Fallback to full range if pool somehow yields no pair
+  const pool =
+    pairBases.length > 0
+      ? candidatePool
+      : Array.from({ length: target - 1 }, (_, i) => i + 1)
+
+  const bases =
+    pairBases.length > 0
+      ? pairBases
+      : pool.filter(n => n < target - n)
+
+  const a = bases[Math.floor(Math.random() * bases.length)]
   const b = target - a
 
-  const pool = valid.filter(n => n !== a && n !== b)
-  const fillers = shuffle(pool).slice(0, 6)
+  const fillers = shuffle(pool.filter(n => n !== a && n !== b)).slice(0, 6)
   return shuffle([a, b, ...fillers])
 }
 
@@ -48,6 +79,7 @@ export default function NumberBondsPotion({ topicId, difficulty, onComplete }: P
   const [score, setScore] = useState(0)
   const [target, setTarget] = useState(10)
   const [options, setOptions] = useState<number[]>([])
+  // selected stores INDICES into options, not values — avoids any duplicate-value confusion
   const [selected, setSelected] = useState<number[]>([])
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null)
   const [startTime, setStartTime] = useState(0)
@@ -70,13 +102,15 @@ export default function NumberBondsPotion({ topicId, difficulty, onComplete }: P
     setPhase('playing')
   }
 
-  function handleSelect(n: number) {
+  function handleSelect(idx: number) {
     if (feedback) return
-    const newSelected = selected.includes(n) ? selected.filter(x => x !== n) : [...selected, n]
+    const newSelected = selected.includes(idx)
+      ? selected.filter(x => x !== idx)
+      : [...selected, idx]
     setSelected(newSelected)
 
     if (newSelected.length === 2) {
-      const sum = newSelected.reduce((a, b) => a + b, 0)
+      const sum = newSelected.reduce((acc, i) => acc + options[i], 0)
       if (sum === target) {
         setFeedback('correct')
         setScore(s => s + 1)
@@ -127,6 +161,9 @@ export default function NumberBondsPotion({ topicId, difficulty, onComplete }: P
     )
   }
 
+  const selectedValues = selected.map(i => options[i])
+  const runningSum = selectedValues.reduce((a, b) => a + b, 0)
+
   return (
     <div className="flex flex-col min-h-screen px-4 pt-16 pb-4 items-center">
       <div className="max-w-lg w-full mb-4">
@@ -156,7 +193,7 @@ export default function NumberBondsPotion({ topicId, difficulty, onComplete }: P
           <div className="text-white font-fredoka text-6xl">{target}</div>
           {selected.length > 0 && (
             <div className="text-white/60 text-lg mt-1">
-              {selected.join(' + ')} = {selected.reduce((a, b) => a + b, 0)}
+              {selectedValues.join(' + ')} = {runningSum}
             </div>
           )}
         </div>
@@ -170,15 +207,15 @@ export default function NumberBondsPotion({ topicId, difficulty, onComplete }: P
         </AnimatePresence>
       </motion.div>
 
-      {/* Number tiles */}
+      {/* Number tiles — key uses round+index so React always re-mounts on new round */}
       <div className="max-w-lg w-full grid grid-cols-4 gap-3">
-        {options.map(n => (
+        {options.map((n, idx) => (
           <motion.button
-            key={n}
+            key={`${round}-${idx}`}
             whileTap={{ scale: 0.9 }}
-            onClick={() => handleSelect(n)}
+            onClick={() => handleSelect(idx)}
             className={`py-4 rounded-2xl text-2xl font-black border-2 transition-all ${
-              selected.includes(n)
+              selected.includes(idx)
                 ? 'bg-purple-500 border-purple-300 text-white scale-110'
                 : 'bg-white/10 border-white/20 text-white hover:border-purple-400'
             }`}
