@@ -7,6 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      manifestFilename: 'manifest.json',
       includeAssets: ['wand.svg', 'icons/*.png'],
       // Cache Google Fonts and all app assets for full offline support
       workbox: {
