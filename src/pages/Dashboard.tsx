@@ -254,7 +254,7 @@ export default function Dashboard() {
           <button
             type="button"
             onClick={() => setShowResetConfirm(true)}
-            className="text-[10px] text-white/20 hover:text-white/40 transition-colors"
+            className="text-xs text-white/40 hover:text-white/70 transition-colors underline decoration-dotted decoration-white/30"
           >
             reset game
           </button>
