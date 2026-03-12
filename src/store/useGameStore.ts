@@ -323,10 +323,7 @@ export const useGameStore = create<GameStoreState>()(
       },
 
       isYearUnlocked: (yearGroup) => {
-        const year = YEARS.find(y => y.id === yearGroup)
-        if (!year?.unlockRequirement) return true
-        const { yearGroup: reqYear, minMastery } = year.unlockRequirement
-        return get().getYearMastery(reqYear) >= minMastery
+        return true
       },
     }),
     {

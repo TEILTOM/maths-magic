@@ -25,15 +25,21 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
-function makeOptions(correct: number, count = 4, range = 5): string[] {
+function makeOptions(correct: number, count = 4, range = 5, minValue = -Infinity): string[] {
   const opts = new Set<number>([correct])
   let attempts = 0
   while (opts.size < count && attempts < 50) {
     const offset = rand(-range, range)
-    if (offset !== 0) opts.add(correct + offset)
+    const candidate = correct + offset
+    if (offset !== 0 && candidate >= minValue) opts.add(candidate)
     attempts++
   }
-  while (opts.size < count) opts.add(correct + opts.size * 2)
+  while (opts.size < count) {
+    let candidate = correct + opts.size * 2
+    if (candidate < minValue) candidate = minValue + opts.size
+    while (opts.has(candidate)) candidate += 1
+    opts.add(candidate)
+  }
   const arr = Array.from(opts).map(String)
   return shuffle(arr)
 }
@@ -159,16 +165,16 @@ function timesTable(table: number, difficulty: Difficulty, topicId: TopicId): Qu
   const type = questionTypes[rand(0, difficulty === 'easy' ? 0 : 2)]
 
   if (type === 'missing') {
-    const opts = makeOptions(factor, 4, 3)
+    const opts = makeOptions(factor, 4, 3, 0)
     return makeQuestion(topicId, difficulty, `${table} × ? = ${ans}`, factor, opts, `Think about the ${table} times table`, `${table} × ${factor} = ${ans}`)
   }
   if (type === 'word') {
     const items = ['stars', 'sweets', 'coins', 'dragons', 'crystals']
     const item = items[rand(0, items.length - 1)]
-    const opts = makeOptions(ans, 4, table)
+    const opts = makeOptions(ans, 4, table, 0)
     return makeQuestion(topicId, difficulty, `There are ${factor} bags with ${table} ${item} in each. How many ${item} altogether?`, ans, opts, `${factor} groups of ${table}`)
   }
-  const opts = makeOptions(ans, 4, table)
+  const opts = makeOptions(ans, 4, table, 0)
   return makeQuestion(topicId, difficulty, `${table} × ${factor} = ?`, ans, opts, `Count in ${table}s`, `${table} × ${factor} = ${ans}`)
 }
 

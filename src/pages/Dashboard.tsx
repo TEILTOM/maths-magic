@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { useGameStore } from '../store/useGameStore'
@@ -23,12 +24,34 @@ const GAME_TILES = [
 export default function Dashboard() {
   const navigate = useNavigate()
   const profile = useGameStore(s => s.profile)!
+  const updateProfile = useGameStore(s => s.updateProfile)
   const getYearMastery = useGameStore(s => s.getYearMastery)
   const isYearUnlocked = useGameStore(s => s.isYearUnlocked)
   const char = getCharacter(profile.characterId)
 
   const currentYear = YEARS.find(y => y.id === profile.currentYear)!
   const currentMastery = getYearMastery(profile.currentYear)
+  const [isEditingName, setIsEditingName] = useState(false)
+  const [draftName, setDraftName] = useState(profile.name)
+
+  function startEditName() {
+    setDraftName(profile.name)
+    setIsEditingName(true)
+  }
+
+  function cancelEditName() {
+    setIsEditingName(false)
+    setDraftName(profile.name)
+  }
+
+  function saveName() {
+    const next = draftName.trim()
+    if (!next) return
+    if (next !== profile.name) {
+      updateProfile({ name: next })
+    }
+    setIsEditingName(false)
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-indigo-950 via-purple-950 to-indigo-950 pb-8">
@@ -38,7 +61,52 @@ export default function Dashboard() {
           <div className="flex items-center gap-2">
             <span className="text-2xl">{char.emoji}</span>
             <div>
-              <div className="text-white font-black text-sm leading-none">{profile.name}</div>
+              <div className="text-white font-black text-sm leading-none flex items-center gap-2">
+                {isEditingName ? (
+                  <>
+                    <input
+                      type="text"
+                      name="wizard-name"
+                      value={draftName}
+                      onChange={e => setDraftName(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') saveName()
+                        if (e.key === 'Escape') cancelEditName()
+                      }}
+                      maxLength={20}
+                      autoFocus
+                      autoComplete="off"
+                      className="bg-white/10 border border-purple-300/60 rounded-lg px-2 py-1 text-white text-sm font-bold w-32 focus:outline-none focus:border-purple-300"
+                    />
+                    <button
+                      type="button"
+                      onClick={saveName}
+                      className="text-xs font-black bg-green-500/80 text-white px-2 py-0.5 rounded-lg hover:bg-green-500"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={cancelEditName}
+                      className="text-xs font-black bg-white/10 text-white/80 px-2 py-0.5 rounded-lg hover:bg-white/20"
+                    >
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <span>{profile.name}</span>
+                    <button
+                      type="button"
+                      onClick={startEditName}
+                      className="text-xs text-white/60 hover:text-white/90 font-bold"
+                      aria-label="Edit name"
+                    >
+                      ✎
+                    </button>
+                  </>
+                )}
+              </div>
               <div className="text-white/50 text-xs">{currentYear.label}</div>
             </div>
           </div>

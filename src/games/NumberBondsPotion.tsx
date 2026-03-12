@@ -16,10 +16,24 @@ function getTarget(difficulty: Difficulty): number {
   return [20, 50, 100][Math.floor(Math.random() * 3)]
 }
 
+function shuffle<T>(arr: T[]): T[] {
+  const copy = [...arr]
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[copy[i], copy[j]] = [copy[j], copy[i]]
+  }
+  return copy
+}
+
 function generateOptions(target: number): number[] {
   const valid = Array.from({ length: target - 1 }, (_, i) => i + 1)
-  const shuffled = valid.sort(() => Math.random() - 0.5)
-  return shuffled.slice(0, 8)
+  const validPairBases = valid.filter(n => n !== target - n)
+  const a = validPairBases[Math.floor(Math.random() * validPairBases.length)]
+  const b = target - a
+
+  const pool = valid.filter(n => n !== a && n !== b)
+  const fillers = shuffle(pool).slice(0, 6)
+  return shuffle([a, b, ...fillers])
 }
 
 export default function NumberBondsPotion({ topicId, difficulty, onComplete }: Props) {
