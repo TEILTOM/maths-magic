@@ -57,7 +57,7 @@ export default function CharacterSelect() {
               onChange={e => setName(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && name.trim() && setStep('character')}
               placeholder="Enter your name..."
-              maxLength={20}
+              maxLength={30}
               autoFocus
               autoComplete="off"
               className="w-full bg-white/10 border-2 border-purple-400/50 rounded-2xl px-5 py-4 text-white text-xl font-bold text-center placeholder-white/30 focus:outline-none focus:border-purple-400 transition-colors mb-6"
