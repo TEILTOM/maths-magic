@@ -251,7 +251,8 @@ export const useGameStore = create<GameStoreState>()(
         }
         const newCorrect = existing.correctAnswers + session.score
         const newTotal = existing.questionsAnswered + session.totalQuestions
-        const newMastery = Math.min(100, Math.round((newCorrect / Math.max(newTotal, 1)) * 100))
+        const sessionMastery = Math.min(100, Math.round((session.score / Math.max(session.totalQuestions, 1)) * 100))
+        const newMastery = Math.max(existing.mastery, sessionMastery)
         const stars = accuracy >= 0.9 ? 3 : accuracy >= 0.7 ? 2 : accuracy >= 0.5 ? 1 : 0
 
         const newProgress: TopicProgress = {
