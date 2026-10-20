@@ -18,10 +18,6 @@ interface Question {
   options: number[]
 }
 
-function randInt(min: number, max: number) {
-  return Math.floor(Math.random() * (max - min + 1)) + min
-}
-
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr]
   for (let i = a.length - 1; i > 0; i--) {
@@ -31,68 +27,88 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
+// Shuffle ensuring no two identical values are adjacent
+function shuffleNoConsec(arr: number[]): number[] {
+  for (let attempt = 0; attempt < 30; attempt++) {
+    const a = shuffle(arr)
+    let ok = true
+    for (let i = 1; i < a.length; i++) {
+      if (a[i] === a[i - 1]) { ok = false; break }
+    }
+    if (ok) return a
+  }
+  // Fallback: greedy — always pick highest-count value that isn't the last
+  const counts = new Map<number, number>()
+  arr.forEach(n => counts.set(n, (counts.get(n) ?? 0) + 1))
+  const result: number[] = []
+  while (result.length < arr.length) {
+    const last = result[result.length - 1]
+    const candidates = [...counts.entries()]
+      .filter(([n, c]) => c > 0 && n !== last)
+      .sort((a, b) => b[1] - a[1])
+    if (!candidates.length) break
+    const [pick] = candidates[0]
+    result.push(pick)
+    counts.set(pick, counts.get(pick)! - 1)
+  }
+  return result
+}
+
+// Each multiplier 1-10 appears exactly twice = 20 questions
+function makeMultipliers(): number[] {
+  return shuffleNoConsec([1,2,3,4,5,6,7,8,9,10,1,2,3,4,5,6,7,8,9,10])
+}
+
 function makeOptions(table: number | 'squares', correct: number, isDiv: boolean): number[] {
   const opts = new Set([correct])
-
   if (table === 'squares') {
     if (!isDiv) {
-      // Times: answer is n². Wrong answers are nearby squares.
       const n = Math.round(Math.sqrt(correct))
-      for (let off = 1; off <= 8 && opts.size < 5; off++) {
+      for (let off = 1; off <= 8 && opts.size < 4; off++) {
         if (n + off <= 12) opts.add((n + off) ** 2)
-        if (n - off >= 1 && opts.size < 5) opts.add((n - off) ** 2)
+        if (n - off >= 1 && opts.size < 4) opts.add((n - off) ** 2)
       }
     } else {
-      // Divide: answer is n (1-12). Wrong answers are nearby integers.
-      for (let off = 1; off <= 8 && opts.size < 5; off++) {
+      for (let off = 1; off <= 8 && opts.size < 4; off++) {
         if (correct + off <= 12) opts.add(correct + off)
-        if (correct - off >= 1 && opts.size < 5) opts.add(correct - off)
+        if (correct - off >= 1 && opts.size < 4) opts.add(correct - off)
       }
     }
   } else {
     if (!isDiv) {
-      // Times: answer is n * table. Wrong = neighboring multiples of table.
-      for (let off = 1; off <= 8 && opts.size < 5; off++) {
+      for (let off = 1; off <= 8 && opts.size < 4; off++) {
         const up = correct + off * (table as number)
         const dn = correct - off * (table as number)
         if (up <= (table as number) * 12) opts.add(up)
-        if (dn >= 0 && opts.size < 5) opts.add(dn)
+        if (dn >= 0 && opts.size < 4) opts.add(dn)
       }
     } else {
-      // Divide: answer is factor (0-10). Wrong = nearby integers in range.
-      for (let off = 1; off <= 8 && opts.size < 5; off++) {
+      for (let off = 1; off <= 8 && opts.size < 4; off++) {
         if (correct + off <= 10) opts.add(correct + off)
-        if (correct - off >= 0 && opts.size < 5) opts.add(correct - off)
+        if (correct - off >= 1 && opts.size < 4) opts.add(correct - off)
       }
     }
   }
-
-  return shuffle([...opts]).slice(0, 5)
+  return shuffle([...opts]).slice(0, 4)
 }
 
 function makeTimesQuestions(table: number | 'squares'): Question[] {
-  return Array.from({ length: DRILL_QUESTIONS }, () => {
+  return makeMultipliers().map(n => {
     if (table === 'squares') {
-      const n = randInt(1, 12)
       const answer = n * n
       return { display: n, answer, options: makeOptions(table, answer, false) }
     }
-    const n = randInt(0, 10)
     const answer = n * (table as number)
     return { display: n, answer, options: makeOptions(table, answer, false) }
   })
 }
 
 function makeDivideQuestions(table: number | 'squares'): Question[] {
-  return Array.from({ length: DRILL_QUESTIONS }, () => {
+  return makeMultipliers().map(factor => {
     if (table === 'squares') {
-      const n = randInt(1, 12)
-      const answer = n
-      return { display: n * n, answer, options: makeOptions(table, answer, true) }
+      return { display: factor * factor, answer: factor, options: makeOptions(table, factor, true) }
     }
-    const factor = randInt(0, 10)
-    const answer = factor
-    return { display: factor * (table as number), answer, options: makeOptions(table, answer, true) }
+    return { display: factor * (table as number), answer: factor, options: makeOptions(table, factor, true) }
   })
 }
 
@@ -338,45 +354,27 @@ export default function DrillSheet({ topicId, onComplete }: Props) {
         </motion.div>
       </AnimatePresence>
 
-      {/* Answer buttons — 2×2 + 1 centred */}
-      <div className="max-w-sm w-full space-y-2">
-        <div className="grid grid-cols-2 gap-2">
-          {q.options.slice(0, 4).map(opt => {
-            const isCorrectOpt = opt === q.answer
-            const isTapped = tapped === opt
-            let bg = 'bg-white/10 border-white/20 hover:bg-white/20 active:scale-95'
-            if (isTapped && tappedCorrect) bg = 'bg-green-500 border-green-400 scale-95'
-            else if (isTapped && tappedWrong) bg = 'bg-red-500 border-red-400 scale-95'
-            else if (tappedWrong && isCorrectOpt) bg = 'bg-green-500/60 border-green-400'
-
-            return (
-              <motion.button
-                key={opt}
-                whileTap={advancing ? {} : { scale: 0.93 }}
-                onClick={() => handleTap(opt)}
-                disabled={advancing}
-                className={`border-2 rounded-2xl py-5 text-white font-black text-3xl transition-all ${bg}`}
-              >
-                {opt}
-              </motion.button>
-            )
-          })}
-        </div>
-        {q.options[4] !== undefined && (
-          <motion.button
-            whileTap={advancing ? {} : { scale: 0.93 }}
-            onClick={() => handleTap(q.options[4])}
-            disabled={advancing}
-            className={`w-full border-2 rounded-2xl py-5 text-white font-black text-3xl transition-all ${
-              tapped === q.options[4] && tappedCorrect ? 'bg-green-500 border-green-400 scale-95' :
-              tapped === q.options[4] && tappedWrong ? 'bg-red-500 border-red-400 scale-95' :
-              tappedWrong && q.options[4] === q.answer ? 'bg-green-500/60 border-green-400' :
-              'bg-white/10 border-white/20 hover:bg-white/20 active:scale-95'
-            }`}
-          >
-            {q.options[4]}
-          </motion.button>
-        )}
+      {/* Answer buttons — 2×2 grid */}
+      <div className="max-w-sm w-full grid grid-cols-2 gap-3">
+        {q.options.map(opt => {
+          const isCorrectOpt = opt === q.answer
+          const isTapped = tapped === opt
+          let bg = 'bg-white/10 border-white/20 hover:bg-white/20'
+          if (isTapped && tappedCorrect) bg = 'bg-green-500 border-green-400'
+          else if (isTapped && tappedWrong) bg = 'bg-red-500 border-red-400'
+          else if (tappedWrong && isCorrectOpt) bg = 'bg-green-500/60 border-green-400'
+          return (
+            <motion.button
+              key={opt}
+              whileTap={advancing ? {} : { scale: 0.93 }}
+              onClick={() => handleTap(opt)}
+              disabled={advancing}
+              className={`border-2 rounded-2xl py-6 text-white font-black text-4xl transition-all ${bg}`}
+            >
+              {opt}
+            </motion.button>
+          )
+        })}
       </div>
     </div>
   )

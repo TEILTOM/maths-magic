@@ -1,5 +1,5 @@
 export const DRILL_TIME = 105 // 1 min 45 sec total (both × and ÷)
-export const DRILL_QUESTIONS = 28 // per phase
+export const DRILL_QUESTIONS = 20 // per phase
 
 export interface DrillLevel {
   table: number | 'squares'
