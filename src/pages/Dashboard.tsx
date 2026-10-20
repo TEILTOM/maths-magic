@@ -19,6 +19,7 @@ const GAME_TILES = [
   { id: 'memory-crystal', label: 'Memory Crystals', emoji: '💎', description: 'Match the pairs!', color: 'from-cyan-500 to-blue-600' },
   { id: 'magic-market', label: 'Magic Market', emoji: '🛒', description: 'Coins & change!', color: 'from-yellow-500 to-amber-600' },
   { id: 'trick-book', label: 'Trick Book', emoji: '📚', description: 'Secret shortcuts!', color: 'from-violet-500 to-purple-700' },
+  { id: 'drill-sheet', label: 'Drill Sheets', emoji: '📋', description: 'Timed ×÷ drills!', color: 'from-yellow-500 to-amber-600' },
 ]
 
 export default function Dashboard() {
@@ -175,11 +176,9 @@ export default function Dashboard() {
               transition={{ delay: 0.1 + i * 0.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => {
-                if (game.id === 'trick-book') {
-                  navigate('/tricks')
-                } else {
-                  navigate(`/game/${profile.currentYear}-general/${game.id}`)
-                }
+                if (game.id === 'trick-book') navigate('/tricks')
+                else if (game.id === 'drill-sheet') navigate('/drills')
+                else navigate(`/game/${profile.currentYear}-general/${game.id}`)
               }}
               className={`bg-gradient-to-br ${game.color} rounded-2xl p-4 text-left shadow-lg border border-white/10 hover:scale-105 transition-transform`}
             >
@@ -189,23 +188,6 @@ export default function Dashboard() {
             </motion.button>
           ))}
         </div>
-
-        {/* Drill Sheets shortcut */}
-        <motion.button
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35 }}
-          whileTap={{ scale: 0.97 }}
-          onClick={() => navigate('/drills')}
-          className="w-full mb-6 bg-gradient-to-r from-yellow-500 to-amber-600 rounded-2xl p-4 flex items-center gap-4 shadow-lg border border-white/10 hover:brightness-110 transition-all"
-        >
-          <span className="text-4xl">📋</span>
-          <div className="text-left">
-            <div className="text-white font-black">Drill Sheets</div>
-            <div className="text-white/70 text-xs">Timed ×÷ drills · 1 min 45 sec</div>
-          </div>
-          <span className="ml-auto text-white/60 text-lg">›</span>
-        </motion.button>
 
         {/* All years */}
         <motion.h2

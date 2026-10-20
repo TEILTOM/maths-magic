@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import { useGameStore } from '../store/useGameStore'
-import { getDrillLevel, DRILL_TIME, DRILL_QUESTIONS } from '../data/drillLevels'
+import { getDrillLevel, DRILL_LEVELS, DRILL_QUESTIONS } from '../data/drillLevels'
 import Button from '../components/ui/Button'
 import Confetti from '../components/Confetti'
 
@@ -15,8 +16,17 @@ type Phase = 'ready' | 'times' | 'divide' | 'done'
 interface Question {
   display: number
   answer: number
-  options: number[]
+  options: number[] // always 4, sorted ascending
 }
+
+const TIMER_OPTIONS = [
+  { label: '1:30', secs: 90 },
+  { label: '1:45', secs: 105 },
+  { label: '2:00', secs: 120 },
+  { label: '2:30', secs: 150 },
+]
+
+const PASS_SCORE = 39 // out of 40
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr]
@@ -27,7 +37,6 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
-// Shuffle ensuring no two identical values are adjacent
 function shuffleNoConsec(arr: number[]): number[] {
   for (let attempt = 0; attempt < 30; attempt++) {
     const a = shuffle(arr)
@@ -37,7 +46,7 @@ function shuffleNoConsec(arr: number[]): number[] {
     }
     if (ok) return a
   }
-  // Fallback: greedy — always pick highest-count value that isn't the last
+  // Greedy fallback
   const counts = new Map<number, number>()
   arr.forEach(n => counts.set(n, (counts.get(n) ?? 0) + 1))
   const result: number[] = []
@@ -54,7 +63,7 @@ function shuffleNoConsec(arr: number[]): number[] {
   return result
 }
 
-// Each multiplier 1-10 appears exactly twice = 20 questions
+// Multipliers 1-10, each twice, no consecutive same = 20 questions
 function makeMultipliers(): number[] {
   return shuffleNoConsec([1,2,3,4,5,6,7,8,9,10,1,2,3,4,5,6,7,8,9,10])
 }
@@ -89,7 +98,7 @@ function makeOptions(table: number | 'squares', correct: number, isDiv: boolean)
       }
     }
   }
-  return shuffle([...opts]).slice(0, 4)
+  return [...opts].sort((a, b) => a - b).slice(0, 4)
 }
 
 function makeTimesQuestions(table: number | 'squares'): Question[] {
@@ -119,21 +128,25 @@ function formatTime(secs: number) {
 }
 
 export default function DrillSheet({ topicId, onComplete }: Props) {
+  const navigate = useNavigate()
   const completeGame = useGameStore(s => s.completeGame)
   const startActiveGame = useGameStore(s => s.startActiveGame)
   const recordActiveAnswer = useGameStore(s => s.recordActiveAnswer)
 
   const level = getDrillLevel(topicId)
   const table = level?.table ?? 2
+  const levelIdx = DRILL_LEVELS.findIndex(l => l.id === topicId)
+  const nextLevel = DRILL_LEVELS[levelIdx + 1]
 
   const [phase, setPhase] = useState<Phase>('ready')
+  const [timerSecs, setTimerSecs] = useState(105)
   const [timesQs, setTimesQs] = useState<Question[]>([])
   const [divideQs, setDivideQs] = useState<Question[]>([])
   const [current, setCurrent] = useState(0)
-  const [timeLeft, setTimeLeft] = useState(DRILL_TIME)
+  const [timeLeft, setTimeLeft] = useState(105)
   const [timesCorrect, setTimesCorrect] = useState(0)
   const [divideCorrect, setDivideCorrect] = useState(0)
-  const [tapped, setTapped] = useState<number | null>(null) // which option was tapped
+  const [tapped, setTapped] = useState<number | null>(null)
   const [advancing, setAdvancing] = useState(false)
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -151,13 +164,7 @@ export default function DrillSheet({ topicId, onComplete }: Props) {
   const finishDrill = useCallback((tc: number, dc: number) => {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
     timerRunning.current = false
-    completeGame({
-      topicId,
-      gameType: 'drill-sheet',
-      score: tc + dc,
-      totalQuestions: DRILL_QUESTIONS * 2,
-      timeMs: 0,
-    })
+    completeGame({ topicId, gameType: 'drill-sheet', score: tc + dc, totalQuestions: DRILL_QUESTIONS * 2, timeMs: 0 })
     setPhase('done')
   }, [completeGame, topicId])
 
@@ -189,7 +196,7 @@ export default function DrillSheet({ topicId, onComplete }: Props) {
     setTimesCorrect(0)
     setDivideCorrect(0)
     setCurrent(0)
-    setTimeLeft(DRILL_TIME)
+    setTimeLeft(timerSecs)
     setTapped(null)
     setAdvancing(false)
     startActiveGame(topicId, 'drill-sheet')
@@ -201,17 +208,14 @@ export default function DrillSheet({ topicId, onComplete }: Props) {
     const questions = phase === 'times' ? timesQs : divideQs
     const q = questions[current]
     if (!q) return
-
     const isCorrect = option === q.answer
     setTapped(option)
     setAdvancing(true)
     recordActiveAnswer(isCorrect)
-
     if (isCorrect) {
       if (phase === 'times') setTimesCorrect(c => { timesCorrectRef.current = c + 1; return c + 1 })
       else setDivideCorrect(c => { divideCorrectRef.current = c + 1; return c + 1 })
     }
-
     setTimeout(() => {
       setTapped(null)
       setAdvancing(false)
@@ -223,21 +227,40 @@ export default function DrillSheet({ topicId, onComplete }: Props) {
         if (nextIdx >= DRILL_QUESTIONS) finishDrill(timesCorrectRef.current, divideCorrectRef.current)
         else setCurrent(nextIdx)
       }
-    }, isCorrect ? 300 : 600)
+    }, isCorrect ? 280 : 580)
   }
 
   // ─── Ready ──────────────────────────────────────────────────────
   if (phase === 'ready') {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen px-4 text-center gap-5">
-        <div className="text-7xl">{level?.emoji ?? '✖️'}</div>
+        <div className="text-6xl">{level?.emoji ?? '✖️'}</div>
         <h2 className="text-white font-fredoka text-3xl">{level?.label ?? 'Drill Sheet'}</h2>
-        <div className="bg-white/10 border border-white/20 rounded-2xl p-4 max-w-xs w-full text-left space-y-2">
-          <p className="text-white font-bold">📋 How it works:</p>
-          <p className="text-white/70 text-sm">1. 28 times questions, then 28 divide</p>
-          <p className="text-white/70 text-sm">2. All in <span className="text-yellow-300 font-black">1 minute 45 seconds</span></p>
-          <p className="text-white/70 text-sm">3. Tap the right answer — rapid fire!</p>
+
+        <div className="bg-white/10 border border-white/20 rounded-2xl p-4 max-w-xs w-full text-left space-y-1">
+          <p className="text-white/60 text-xs">20 × questions then 20 ÷ questions · need {PASS_SCORE}/40 to pass</p>
         </div>
+
+        {/* Timer picker */}
+        <div className="max-w-xs w-full">
+          <p className="text-white/60 text-sm mb-2">Choose your time limit:</p>
+          <div className="grid grid-cols-4 gap-2">
+            {TIMER_OPTIONS.map(opt => (
+              <button
+                key={opt.secs}
+                onClick={() => setTimerSecs(opt.secs)}
+                className={`rounded-xl py-3 font-black text-sm border-2 transition-all ${
+                  timerSecs === opt.secs
+                    ? 'bg-yellow-400 border-yellow-300 text-amber-900'
+                    : 'bg-white/10 border-white/20 text-white hover:bg-white/20'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <Button variant="gold" size="xl" onClick={startDrill}>⏱️ Start Drill!</Button>
         <Button variant="ghost" size="sm" onClick={onComplete}>← Back</Button>
       </div>
@@ -247,16 +270,20 @@ export default function DrillSheet({ topicId, onComplete }: Props) {
   // ─── Done ───────────────────────────────────────────────────────
   if (phase === 'done') {
     const total = timesCorrect + divideCorrect
+    const passed = total >= PASS_SCORE
     const pct = Math.round((total / (DRILL_QUESTIONS * 2)) * 100)
-    const great = pct >= 85
 
     return (
       <div className="flex flex-col items-center justify-center min-h-screen px-4 text-center gap-4">
-        {great && <Confetti />}
-        <div className="text-6xl">{great ? '🏆' : pct >= 60 ? '⭐' : '💪'}</div>
+        {passed && <Confetti />}
+        <div className="text-6xl">{passed ? '🏆' : pct >= 70 ? '⭐' : '💪'}</div>
         <h2 className="text-white font-fredoka text-3xl">
-          {great ? 'Brilliant!' : pct >= 60 ? 'Good try!' : 'Keep practising!'}
+          {passed ? 'Level passed!' : pct >= 70 ? 'So close!' : 'Keep practising!'}
         </h2>
+        {!passed && (
+          <p className="text-white/50 text-sm">Need {PASS_SCORE}/40 to unlock the next level</p>
+        )}
+
         <div className="bg-white/10 border border-white/20 rounded-2xl p-5 max-w-xs w-full space-y-3">
           <div className="flex justify-between text-sm">
             <span className="text-white/60">✖️ Times</span>
@@ -268,22 +295,25 @@ export default function DrillSheet({ topicId, onComplete }: Props) {
           </div>
           <div className="border-t border-white/10 pt-3 flex justify-between">
             <span className="text-white/80 font-bold">Total</span>
-            <span className="text-white font-black text-lg">{total} / {DRILL_QUESTIONS * 2}</span>
+            <span className={`font-black text-lg ${passed ? 'text-green-400' : 'text-white'}`}>
+              {total} / {DRILL_QUESTIONS * 2}
+            </span>
           </div>
         </div>
-        {great && level?.nextLabel && level.nextLabel !== 'Champion!' && (
-          <div className="bg-yellow-400/20 border border-yellow-400/40 rounded-xl px-4 py-2 text-yellow-300 text-sm font-bold">
-            🎉 Next up: {level.nextLabel}
-          </div>
-        )}
-        {great && level?.nextLabel === 'Champion!' && (
-          <div className="bg-yellow-400/20 border border-yellow-400/40 rounded-xl px-4 py-2 text-yellow-300 font-bold">
-            🏆 Tables Champion!
-          </div>
-        )}
-        <div className="flex gap-3">
-          <Button variant="ghost" onClick={onComplete}>← Back</Button>
-          <Button variant="gold" size="lg" onClick={startDrill}>🔄 Try Again!</Button>
+
+        <div className="flex flex-col gap-2 w-full max-w-xs">
+          {passed && nextLevel && (
+            <Button variant="gold" size="lg" fullWidth onClick={() => navigate(`/game/${nextLevel.id}/drill-sheet`)}>
+              🎉 Start {nextLevel.label} →
+            </Button>
+          )}
+          {passed && !nextLevel && (
+            <div className="bg-yellow-400/20 border border-yellow-400/40 rounded-xl px-4 py-3 text-yellow-300 font-bold">
+              🏆 Tables Champion! All levels complete!
+            </div>
+          )}
+          <Button variant="primary" size="lg" fullWidth onClick={startDrill}>🔄 Try Again</Button>
+          <Button variant="ghost" fullWidth onClick={onComplete}>← Back to Drills</Button>
         </div>
       </div>
     )
@@ -330,52 +360,53 @@ export default function DrillSheet({ topicId, onComplete }: Props) {
         </div>
       </div>
 
-      {/* Question */}
+      {/* Question left + answers right */}
       <AnimatePresence mode="wait">
         <motion.div
           key={`${phase}-${current}`}
-          initial={{ scale: 0.9, opacity: 0 }}
+          initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.9, opacity: 0 }}
+          exit={{ scale: 0.95, opacity: 0 }}
           transition={{ duration: 0.1 }}
-          className="max-w-sm w-full text-center mb-4"
+          className="max-w-sm w-full flex gap-3"
         >
-          <div className="bg-white/10 border-2 border-white/20 rounded-2xl py-5 px-4">
+          {/* Question box */}
+          <div className="flex-1 bg-white/10 border-2 border-white/20 rounded-2xl flex items-center justify-center p-4 min-h-[200px]">
             {phase === 'times' ? (
               table === 'squares'
-                ? <span className="text-white font-fredoka text-5xl">{q.display}<sup>2</sup> = ?</span>
-                : <span className="text-white font-fredoka text-5xl">{q.display} × {table} = ?</span>
+                ? <div className="text-center"><div className="text-white font-fredoka text-5xl">{q.display}<sup>2</sup></div><div className="text-white/50 text-2xl mt-1">= ?</div></div>
+                : <div className="text-center"><div className="text-white font-fredoka text-4xl">{q.display} × {table}</div><div className="text-white/50 text-2xl mt-1">= ?</div></div>
             ) : (
               table === 'squares'
-                ? <span className="text-white font-fredoka text-5xl">√{q.display} = ?</span>
-                : <span className="text-white font-fredoka text-5xl">{q.display} ÷ {table} = ?</span>
+                ? <div className="text-center"><div className="text-white font-fredoka text-5xl">√{q.display}</div><div className="text-white/50 text-2xl mt-1">= ?</div></div>
+                : <div className="text-center"><div className="text-white font-fredoka text-4xl">{q.display} ÷ {table}</div><div className="text-white/50 text-2xl mt-1">= ?</div></div>
             )}
+          </div>
+
+          {/* Answer buttons — sorted low→high, stacked vertically */}
+          <div className="flex flex-col gap-2 w-[45%]">
+            {q.options.map(opt => {
+              const isCorrectOpt = opt === q.answer
+              const isTapped = tapped === opt
+              let bg = 'bg-white/10 border-white/20 hover:bg-white/20'
+              if (isTapped && tappedCorrect) bg = 'bg-green-500 border-green-400'
+              else if (isTapped && tappedWrong) bg = 'bg-red-500 border-red-400'
+              else if (tappedWrong && isCorrectOpt) bg = 'bg-green-500/60 border-green-400'
+              return (
+                <motion.button
+                  key={opt}
+                  whileTap={advancing ? {} : { scale: 0.93 }}
+                  onClick={() => handleTap(opt)}
+                  disabled={advancing}
+                  className={`flex-1 border-2 rounded-xl text-white font-black text-3xl transition-all ${bg}`}
+                >
+                  {opt}
+                </motion.button>
+              )
+            })}
           </div>
         </motion.div>
       </AnimatePresence>
-
-      {/* Answer buttons — 2×2 grid */}
-      <div className="max-w-sm w-full grid grid-cols-2 gap-3">
-        {q.options.map(opt => {
-          const isCorrectOpt = opt === q.answer
-          const isTapped = tapped === opt
-          let bg = 'bg-white/10 border-white/20 hover:bg-white/20'
-          if (isTapped && tappedCorrect) bg = 'bg-green-500 border-green-400'
-          else if (isTapped && tappedWrong) bg = 'bg-red-500 border-red-400'
-          else if (tappedWrong && isCorrectOpt) bg = 'bg-green-500/60 border-green-400'
-          return (
-            <motion.button
-              key={opt}
-              whileTap={advancing ? {} : { scale: 0.93 }}
-              onClick={() => handleTap(opt)}
-              disabled={advancing}
-              className={`border-2 rounded-2xl py-6 text-white font-black text-4xl transition-all ${bg}`}
-            >
-              {opt}
-            </motion.button>
-          )
-        })}
-      </div>
     </div>
   )
 }
