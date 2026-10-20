@@ -190,6 +190,23 @@ export default function Dashboard() {
           ))}
         </div>
 
+        {/* Drill Sheets shortcut */}
+        <motion.button
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+          whileTap={{ scale: 0.97 }}
+          onClick={() => navigate('/drills')}
+          className="w-full mb-6 bg-gradient-to-r from-yellow-500 to-amber-600 rounded-2xl p-4 flex items-center gap-4 shadow-lg border border-white/10 hover:brightness-110 transition-all"
+        >
+          <span className="text-4xl">📋</span>
+          <div className="text-left">
+            <div className="text-white font-black">Drill Sheets</div>
+            <div className="text-white/70 text-xs">Timed ×÷ drills · 1 min 45 sec</div>
+          </div>
+          <span className="ml-auto text-white/60 text-lg">›</span>
+        </motion.button>
+
         {/* All years */}
         <motion.h2
           className="text-white font-fredoka text-xl mb-3"

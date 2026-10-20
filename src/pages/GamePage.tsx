@@ -6,6 +6,7 @@ import TimesTableQuest from '../games/TimesTableQuest'
 import FractionFeast from '../games/FractionFeast'
 import MemoryCrystal from '../games/MemoryCrystal'
 import MagicMarket from '../games/MagicMarket'
+import DrillSheet from '../games/DrillSheet'
 import Button from '../components/ui/Button'
 import { getDifficultyForMastery } from '../utils/questionGenerator'
 
@@ -30,6 +31,7 @@ export default function GamePage() {
       case 'fraction-feast': return <FractionFeast {...commonProps} />
       case 'memory-crystal': return <MemoryCrystal {...commonProps} />
       case 'magic-market': return <MagicMarket {...commonProps} />
+      case 'drill-sheet': return <DrillSheet topicId={topic} onComplete={() => navigate(-1)} />
       default: return <SpellCasting {...commonProps} />
     }
   }
