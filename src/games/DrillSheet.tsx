@@ -368,11 +368,11 @@ export default function DrillSheet({ topicId, onComplete }: Props) {
         </div>
       </div>
 
-      {/* Main area: question list left + question/answers right */}
+      {/* Main area: question list | question box | answer buttons */}
       <div className="flex gap-2 flex-1 overflow-hidden">
 
-        {/* Question list */}
-        <div className="w-[68px] flex flex-col gap-px overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
+        {/* Question list — single line per entry, no wrap */}
+        <div className="w-[82px] shrink-0 flex flex-col gap-px overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
           {questions.map((qItem, i) => {
             const res = results[i]
             const isCurrent = i === current
@@ -380,7 +380,7 @@ export default function DrillSheet({ topicId, onComplete }: Props) {
               <div
                 key={i}
                 ref={i === current ? currentListItemRef : undefined}
-                className={`text-[10px] px-1.5 py-1 rounded-lg leading-tight transition-colors ${
+                className={`text-xs px-1.5 py-1 rounded-lg transition-colors whitespace-nowrap overflow-hidden ${
                   isCurrent
                     ? 'bg-purple-500/50 text-white font-bold ring-1 ring-purple-400/60'
                     : res === true ? 'text-green-400'
@@ -388,59 +388,59 @@ export default function DrillSheet({ topicId, onComplete }: Props) {
                     : 'text-white/25'
                 }`}
               >
-                <div>{questionLabel(qItem, i)}</div>
-                {res === true && <div className="font-black text-green-300">={qItem.answer}✓</div>}
-                {res === false && <div className="text-red-400">✗</div>}
+                {questionLabel(qItem, i)}
+                {res === true && <span className="ml-1 font-black text-green-300">={qItem.answer}✓</span>}
+                {res === false && <span className="ml-1 text-red-400">✗</span>}
               </div>
             )
           })}
         </div>
 
-        {/* Right: question display + 2×2 answer grid */}
-        <div className="flex-1 flex flex-col gap-2 min-w-0">
-          {/* Question display */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`${phase}-${current}`}
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              transition={{ duration: 0.08 }}
-              className="bg-white/10 border-2 border-white/20 rounded-2xl flex items-center justify-center p-3 min-h-[100px]"
-            >
+        {/* Question box + answer buttons side by side */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`${phase}-${current}`}
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            transition={{ duration: 0.08 }}
+            className="flex-1 flex gap-2 min-w-0"
+          >
+            {/* Question display */}
+            <div className="flex-1 bg-white/10 border-2 border-white/20 rounded-2xl flex items-center justify-center p-3 min-h-[200px]">
               {phase === 'times' ? (
                 table === 'squares'
-                  ? <div className="text-center"><div className="text-white font-fredoka text-5xl">{q.display}<sup>2</sup></div><div className="text-white/50 text-xl mt-1">= ?</div></div>
-                  : <div className="text-center"><div className="text-white font-fredoka text-4xl">{q.display} × {table}</div><div className="text-white/50 text-xl mt-1">= ?</div></div>
+                  ? <div className="text-center"><div className="text-white font-fredoka text-5xl">{q.display}<sup>2</sup></div><div className="text-white/50 text-2xl mt-1">= ?</div></div>
+                  : <div className="text-center"><div className="text-white font-fredoka text-4xl">{q.display} × {table}</div><div className="text-white/50 text-2xl mt-1">= ?</div></div>
               ) : (
                 table === 'squares'
-                  ? <div className="text-center"><div className="text-white font-fredoka text-5xl">√{q.display}</div><div className="text-white/50 text-xl mt-1">= ?</div></div>
-                  : <div className="text-center"><div className="text-white font-fredoka text-4xl">{q.display} ÷ {table}</div><div className="text-white/50 text-xl mt-1">= ?</div></div>
+                  ? <div className="text-center"><div className="text-white font-fredoka text-5xl">√{q.display}</div><div className="text-white/50 text-2xl mt-1">= ?</div></div>
+                  : <div className="text-center"><div className="text-white font-fredoka text-4xl">{q.display} ÷ {table}</div><div className="text-white/50 text-2xl mt-1">= ?</div></div>
               )}
-            </motion.div>
-          </AnimatePresence>
+            </div>
 
-          {/* 2×2 answer grid — key includes current so buttons are always fresh DOM nodes */}
-          <div className="grid grid-cols-2 gap-2 flex-1">
-            {q.options.map(opt => {
-              const isTapped = tapped === opt
-              let bg = 'bg-white/10 border-white/20 hover:bg-white/20'
-              if (isTapped && tappedCorrect) bg = 'bg-green-500 border-green-400'
-              else if (isTapped && tappedWrong) bg = 'bg-red-500 border-red-400'
-              return (
-                <motion.button
-                  key={`${phase}-${current}-${opt}`}
-                  whileTap={advancing ? {} : { scale: 0.93 }}
-                  onClick={() => handleTap(opt)}
-                  disabled={advancing}
-                  className={`border-2 rounded-xl text-white font-black text-3xl transition-colors ${bg}`}
-                >
-                  {opt}
-                </motion.button>
-              )
-            })}
-          </div>
-        </div>
+            {/* Answer buttons — stacked vertically, key includes current for fresh DOM */}
+            <div className="flex flex-col gap-2 w-[42%]">
+              {q.options.map(opt => {
+                const isTapped = tapped === opt
+                let bg = 'bg-white/10 border-white/20 hover:bg-white/20'
+                if (isTapped && tappedCorrect) bg = 'bg-green-500 border-green-400'
+                else if (isTapped && tappedWrong) bg = 'bg-red-500 border-red-400'
+                return (
+                  <motion.button
+                    key={`${phase}-${current}-${opt}`}
+                    whileTap={advancing ? {} : { scale: 0.93 }}
+                    onClick={() => handleTap(opt)}
+                    disabled={advancing}
+                    className={`flex-1 border-2 rounded-xl text-white font-black text-3xl transition-colors ${bg}`}
+                  >
+                    {opt}
+                  </motion.button>
+                )
+              })}
+            </div>
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   )
