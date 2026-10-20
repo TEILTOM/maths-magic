@@ -68,37 +68,26 @@ function makeMultipliers(): number[] {
   return shuffleNoConsec([1,2,3,4,5,6,7,8,9,10,1,2,3,4,5,6,7,8,9,10])
 }
 
+function pickDistractors(pool: number[], correct: number, n: number): number[] {
+  const candidates = shuffle(pool.filter(v => v !== correct))
+  return candidates.slice(0, n)
+}
+
 function makeOptions(table: number | 'squares', correct: number, isDiv: boolean): number[] {
-  const opts = new Set([correct])
+  let pool: number[]
   if (table === 'squares') {
     if (!isDiv) {
-      const n = Math.round(Math.sqrt(correct))
-      for (let off = 1; off <= 8 && opts.size < 4; off++) {
-        if (n + off <= 12) opts.add((n + off) ** 2)
-        if (n - off >= 1 && opts.size < 4) opts.add((n - off) ** 2)
-      }
+      pool = [1,2,3,4,5,6,7,8,9,10,11,12].map(n => n * n)
     } else {
-      for (let off = 1; off <= 8 && opts.size < 4; off++) {
-        if (correct + off <= 12) opts.add(correct + off)
-        if (correct - off >= 1 && opts.size < 4) opts.add(correct - off)
-      }
+      pool = [1,2,3,4,5,6,7,8,9,10,11,12]
     }
+  } else if (!isDiv) {
+    pool = [1,2,3,4,5,6,7,8,9,10,11,12].map(n => n * (table as number))
   } else {
-    if (!isDiv) {
-      for (let off = 1; off <= 8 && opts.size < 4; off++) {
-        const up = correct + off * (table as number)
-        const dn = correct - off * (table as number)
-        if (up <= (table as number) * 12) opts.add(up)
-        if (dn >= 0 && opts.size < 4) opts.add(dn)
-      }
-    } else {
-      for (let off = 1; off <= 8 && opts.size < 4; off++) {
-        if (correct + off <= 10) opts.add(correct + off)
-        if (correct - off >= 1 && opts.size < 4) opts.add(correct - off)
-      }
-    }
+    pool = [1,2,3,4,5,6,7,8,9,10]
   }
-  return [...opts].sort((a, b) => a - b).slice(0, 4)
+  const distractors = pickDistractors(pool, correct, 3)
+  return [correct, ...distractors].sort((a, b) => a - b)
 }
 
 function makeTimesQuestions(table: number | 'squares'): Question[] {
@@ -386,12 +375,10 @@ export default function DrillSheet({ topicId, onComplete }: Props) {
           {/* Answer buttons — sorted low→high, stacked vertically */}
           <div className="flex flex-col gap-2 w-[45%]">
             {q.options.map(opt => {
-              const isCorrectOpt = opt === q.answer
               const isTapped = tapped === opt
               let bg = 'bg-white/10 border-white/20 hover:bg-white/20'
               if (isTapped && tappedCorrect) bg = 'bg-green-500 border-green-400'
               else if (isTapped && tappedWrong) bg = 'bg-red-500 border-red-400'
-              else if (tappedWrong && isCorrectOpt) bg = 'bg-green-500/60 border-green-400'
               return (
                 <motion.button
                   key={opt}
