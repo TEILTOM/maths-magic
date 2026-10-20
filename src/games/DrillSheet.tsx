@@ -369,10 +369,10 @@ export default function DrillSheet({ topicId, onComplete }: Props) {
       </div>
 
       {/* Main area: question list | question box | answer buttons */}
-      <div className="flex gap-2 flex-1 overflow-hidden">
+      <div className="flex gap-2 flex-1 min-h-0">
 
-        {/* Question list — single line per entry, no wrap */}
-        <div className="w-[82px] shrink-0 flex flex-col gap-px overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
+        {/* Question list — bigger text, single line, no wrap */}
+        <div className="w-[90px] shrink-0 flex flex-col gap-0.5 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
           {questions.map((qItem, i) => {
             const res = results[i]
             const isCurrent = i === current
@@ -380,23 +380,23 @@ export default function DrillSheet({ topicId, onComplete }: Props) {
               <div
                 key={i}
                 ref={i === current ? currentListItemRef : undefined}
-                className={`text-xs px-1.5 py-1 rounded-lg transition-colors whitespace-nowrap overflow-hidden ${
+                className={`text-sm px-2 py-1.5 rounded-lg whitespace-nowrap overflow-hidden font-bold ${
                   isCurrent
-                    ? 'bg-purple-500/50 text-white font-bold ring-1 ring-purple-400/60'
+                    ? 'bg-purple-500/50 text-white ring-1 ring-purple-400/60'
                     : res === true ? 'text-green-400'
                     : res === false ? 'text-red-400/80'
-                    : 'text-white/25'
+                    : 'text-white/30'
                 }`}
               >
                 {questionLabel(qItem, i)}
-                {res === true && <span className="ml-1 font-black text-green-300">={qItem.answer}✓</span>}
-                {res === false && <span className="ml-1 text-red-400">✗</span>}
+                {res === true && <span className="text-green-300"> ={qItem.answer}✓</span>}
+                {res === false && <span className="text-red-400"> ✗</span>}
               </div>
             )
           })}
         </div>
 
-        {/* Question box + answer buttons side by side */}
+        {/* Question box + answer buttons side by side — compact, don't fill screen */}
         <AnimatePresence mode="wait">
           <motion.div
             key={`${phase}-${current}`}
@@ -404,26 +404,26 @@ export default function DrillSheet({ topicId, onComplete }: Props) {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
             transition={{ duration: 0.08 }}
-            className="flex-1 flex gap-2 min-w-0"
+            className="flex-1 flex gap-2 min-w-0 self-start"
           >
             {/* Question display */}
-            <div className="flex-1 bg-white/10 border-2 border-white/20 rounded-2xl flex items-center justify-center p-3 min-h-[200px]">
+            <div className="flex-1 bg-white/10 border-2 border-white/20 rounded-2xl flex items-center justify-center p-3 min-h-[230px]">
               {phase === 'times' ? (
                 table === 'squares'
-                  ? <div className="text-center"><div className="text-white font-fredoka text-5xl">{q.display}<sup>2</sup></div><div className="text-white/50 text-2xl mt-1">= ?</div></div>
-                  : <div className="text-center"><div className="text-white font-fredoka text-4xl">{q.display} × {table}</div><div className="text-white/50 text-2xl mt-1">= ?</div></div>
+                  ? <div className="text-center"><div className="text-white font-fredoka text-4xl">{q.display}<sup>2</sup></div><div className="text-white/50 text-xl mt-1">= ?</div></div>
+                  : <div className="text-center"><div className="text-white font-fredoka text-3xl">{q.display} × {table}</div><div className="text-white/50 text-xl mt-1">= ?</div></div>
               ) : (
                 table === 'squares'
-                  ? <div className="text-center"><div className="text-white font-fredoka text-5xl">√{q.display}</div><div className="text-white/50 text-2xl mt-1">= ?</div></div>
-                  : <div className="text-center"><div className="text-white font-fredoka text-4xl">{q.display} ÷ {table}</div><div className="text-white/50 text-2xl mt-1">= ?</div></div>
+                  ? <div className="text-center"><div className="text-white font-fredoka text-4xl">√{q.display}</div><div className="text-white/50 text-xl mt-1">= ?</div></div>
+                  : <div className="text-center"><div className="text-white font-fredoka text-3xl">{q.display} ÷ {table}</div><div className="text-white/50 text-xl mt-1">= ?</div></div>
               )}
             </div>
 
-            {/* Answer buttons — stacked vertically, key includes current for fresh DOM */}
-            <div className="flex flex-col gap-2 w-[42%]">
+            {/* Answer buttons — fixed height, no transition (prevents colour bleed) */}
+            <div className="flex flex-col gap-2 w-[44%]">
               {q.options.map(opt => {
                 const isTapped = tapped === opt
-                let bg = 'bg-white/10 border-white/20 hover:bg-white/20'
+                let bg = 'bg-white/10 border-white/20'
                 if (isTapped && tappedCorrect) bg = 'bg-green-500 border-green-400'
                 else if (isTapped && tappedWrong) bg = 'bg-red-500 border-red-400'
                 return (
@@ -432,7 +432,8 @@ export default function DrillSheet({ topicId, onComplete }: Props) {
                     whileTap={advancing ? {} : { scale: 0.93 }}
                     onClick={() => handleTap(opt)}
                     disabled={advancing}
-                    className={`flex-1 border-2 rounded-xl text-white font-black text-3xl transition-colors ${bg}`}
+                    style={{ WebkitTapHighlightColor: 'transparent' }}
+                    className={`h-[52px] border-2 rounded-xl text-white font-black text-2xl focus:outline-none ${bg}`}
                   >
                     {opt}
                   </motion.button>
