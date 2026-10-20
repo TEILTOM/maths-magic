@@ -137,8 +137,11 @@ export default function DrillSheet({ topicId, onComplete }: Props) {
   const [divideCorrect, setDivideCorrect] = useState(0)
   const [tapped, setTapped] = useState<number | null>(null)
   const [advancing, setAdvancing] = useState(false)
+  const [timesResults, setTimesResults] = useState<(boolean | null)[]>(Array(DRILL_QUESTIONS).fill(null))
+  const [divideResults, setDivideResults] = useState<(boolean | null)[]>(Array(DRILL_QUESTIONS).fill(null))
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const currentListItemRef = useRef<HTMLDivElement>(null)
   const phaseRef = useRef<Phase>('ready')
   const timesCorrectRef = useRef(0)
   const divideCorrectRef = useRef(0)
@@ -179,6 +182,10 @@ export default function DrillSheet({ topicId, onComplete }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase])
 
+  useEffect(() => {
+    currentListItemRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [current, phase])
+
   function startDrill() {
     setTimesQs(makeTimesQuestions(table))
     setDivideQs(makeDivideQuestions(table))
@@ -188,6 +195,8 @@ export default function DrillSheet({ topicId, onComplete }: Props) {
     setTimeLeft(timerSecs)
     setTapped(null)
     setAdvancing(false)
+    setTimesResults(Array(DRILL_QUESTIONS).fill(null))
+    setDivideResults(Array(DRILL_QUESTIONS).fill(null))
     startActiveGame(topicId, 'drill-sheet')
     setPhase('times')
   }
@@ -201,9 +210,13 @@ export default function DrillSheet({ topicId, onComplete }: Props) {
     setTapped(option)
     setAdvancing(true)
     recordActiveAnswer(isCorrect)
-    if (isCorrect) {
-      if (phase === 'times') setTimesCorrect(c => { timesCorrectRef.current = c + 1; return c + 1 })
-      else setDivideCorrect(c => { divideCorrectRef.current = c + 1; return c + 1 })
+    const idx = currentRef.current
+    if (phase === 'times') {
+      setTimesResults(prev => { const n = [...prev]; n[idx] = isCorrect; return n })
+      if (isCorrect) setTimesCorrect(c => { timesCorrectRef.current = c + 1; return c + 1 })
+    } else {
+      setDivideResults(prev => { const n = [...prev]; n[idx] = isCorrect; return n })
+      if (isCorrect) setDivideCorrect(c => { divideCorrectRef.current = c + 1; return c + 1 })
     }
     setTimeout(() => {
       setTapped(null)
@@ -310,6 +323,7 @@ export default function DrillSheet({ topicId, onComplete }: Props) {
 
   // ─── Playing ────────────────────────────────────────────────────
   const questions = phase === 'times' ? timesQs : divideQs
+  const results = phase === 'times' ? timesResults : divideResults
   const q = questions[current]
   if (!q) return null
 
@@ -320,60 +334,94 @@ export default function DrillSheet({ topicId, onComplete }: Props) {
   const tappedCorrect = tapped === q.answer
   const tappedWrong = tapped !== null && tapped !== q.answer
 
+  function questionLabel(qItem: Question, i: number) {
+    if (table === 'squares') {
+      return phase === 'times' ? `${qItem.display}²` : `√${qItem.display}`
+    }
+    return phase === 'times'
+      ? `${qItem.display}×${table}`
+      : `${qItem.display}÷${table}`
+  }
+
   return (
-    <div className="flex flex-col min-h-screen px-3 pt-12 pb-4 items-center">
+    <div className="flex flex-col h-screen px-2 pt-3 pb-3">
       {/* Timer + progress */}
-      <div className="max-w-lg w-full mb-3 space-y-1.5">
+      <div className="w-full mb-2 space-y-1 px-1">
         <div className="flex items-center justify-between">
-          <div className={`font-black text-3xl font-mono tabular-nums ${
+          <div className={`font-black text-2xl font-mono tabular-nums ${
             timerDanger ? 'text-red-400 animate-pulse' :
             timerWarning ? 'text-yellow-300' : 'text-white'
           }`}>
             ⏱ {formatTime(timeLeft)}
           </div>
+          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${phase === 'times' ? 'bg-purple-500/40 text-purple-200' : 'bg-pink-500/40 text-pink-200'}`}>
+            {phase === 'times' ? '✖️ Times' : '➗ Divide'}
+          </span>
           <div className="text-white/50 text-sm">{totalAnswered + 1}/{DRILL_QUESTIONS * 2}</div>
         </div>
-        <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+        <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
           <motion.div
             className="h-full bg-gradient-to-r from-purple-400 to-pink-500 rounded-full"
             animate={{ width: `${progress * 100}%` }}
             transition={{ duration: 0.15 }}
           />
         </div>
-        <div className="flex justify-between text-xs text-white/40">
-          <span>✖️ {timesCorrect}/{DRILL_QUESTIONS}</span>
-          <span className={`font-bold ${phase === 'times' ? 'text-purple-300' : 'text-pink-300'}`}>
-            {phase === 'times' ? '✖️ Times' : '➗ Divide'}
-          </span>
-          <span>➗ {divideCorrect}/{DRILL_QUESTIONS}</span>
-        </div>
       </div>
 
-      {/* Question left + answers right */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={`${phase}-${current}`}
-          initial={{ scale: 0.95, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.95, opacity: 0 }}
-          transition={{ duration: 0.1 }}
-          className="max-w-sm w-full flex gap-3"
-        >
-          {/* Question box */}
-          <div className="flex-1 bg-white/10 border-2 border-white/20 rounded-2xl flex items-center justify-center p-4 min-h-[200px]">
-            {phase === 'times' ? (
-              table === 'squares'
-                ? <div className="text-center"><div className="text-white font-fredoka text-5xl">{q.display}<sup>2</sup></div><div className="text-white/50 text-2xl mt-1">= ?</div></div>
-                : <div className="text-center"><div className="text-white font-fredoka text-4xl">{q.display} × {table}</div><div className="text-white/50 text-2xl mt-1">= ?</div></div>
-            ) : (
-              table === 'squares'
-                ? <div className="text-center"><div className="text-white font-fredoka text-5xl">√{q.display}</div><div className="text-white/50 text-2xl mt-1">= ?</div></div>
-                : <div className="text-center"><div className="text-white font-fredoka text-4xl">{q.display} ÷ {table}</div><div className="text-white/50 text-2xl mt-1">= ?</div></div>
-            )}
-          </div>
+      {/* Main area: question list left + question/answers right */}
+      <div className="flex gap-2 flex-1 overflow-hidden">
 
-          {/* Answer buttons — sorted low→high, stacked vertically */}
-          <div className="flex flex-col gap-2 w-[45%]">
+        {/* Question list */}
+        <div className="w-[68px] flex flex-col gap-px overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
+          {questions.map((qItem, i) => {
+            const res = results[i]
+            const isCurrent = i === current
+            return (
+              <div
+                key={i}
+                ref={i === current ? currentListItemRef : undefined}
+                className={`text-[10px] px-1.5 py-1 rounded-lg leading-tight transition-colors ${
+                  isCurrent
+                    ? 'bg-purple-500/50 text-white font-bold ring-1 ring-purple-400/60'
+                    : res === true ? 'text-green-400'
+                    : res === false ? 'text-red-400/80'
+                    : 'text-white/25'
+                }`}
+              >
+                <div>{questionLabel(qItem, i)}</div>
+                {res === true && <div className="font-black text-green-300">={qItem.answer}✓</div>}
+                {res === false && <div className="text-red-400">✗</div>}
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Right: question display + 2×2 answer grid */}
+        <div className="flex-1 flex flex-col gap-2 min-w-0">
+          {/* Question display */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`${phase}-${current}`}
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ duration: 0.08 }}
+              className="bg-white/10 border-2 border-white/20 rounded-2xl flex items-center justify-center p-3 min-h-[100px]"
+            >
+              {phase === 'times' ? (
+                table === 'squares'
+                  ? <div className="text-center"><div className="text-white font-fredoka text-5xl">{q.display}<sup>2</sup></div><div className="text-white/50 text-xl mt-1">= ?</div></div>
+                  : <div className="text-center"><div className="text-white font-fredoka text-4xl">{q.display} × {table}</div><div className="text-white/50 text-xl mt-1">= ?</div></div>
+              ) : (
+                table === 'squares'
+                  ? <div className="text-center"><div className="text-white font-fredoka text-5xl">√{q.display}</div><div className="text-white/50 text-xl mt-1">= ?</div></div>
+                  : <div className="text-center"><div className="text-white font-fredoka text-4xl">{q.display} ÷ {table}</div><div className="text-white/50 text-xl mt-1">= ?</div></div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+
+          {/* 2×2 answer grid — key includes current so buttons are always fresh DOM nodes */}
+          <div className="grid grid-cols-2 gap-2 flex-1">
             {q.options.map(opt => {
               const isTapped = tapped === opt
               let bg = 'bg-white/10 border-white/20 hover:bg-white/20'
@@ -381,19 +429,19 @@ export default function DrillSheet({ topicId, onComplete }: Props) {
               else if (isTapped && tappedWrong) bg = 'bg-red-500 border-red-400'
               return (
                 <motion.button
-                  key={opt}
+                  key={`${phase}-${current}-${opt}`}
                   whileTap={advancing ? {} : { scale: 0.93 }}
                   onClick={() => handleTap(opt)}
                   disabled={advancing}
-                  className={`flex-1 border-2 rounded-xl text-white font-black text-3xl transition-all ${bg}`}
+                  className={`border-2 rounded-xl text-white font-black text-3xl transition-colors ${bg}`}
                 >
                   {opt}
                 </motion.button>
               )
             })}
           </div>
-        </motion.div>
-      </AnimatePresence>
+        </div>
+      </div>
     </div>
   )
 }
