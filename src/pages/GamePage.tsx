@@ -31,16 +31,18 @@ export default function GamePage() {
       case 'fraction-feast': return <FractionFeast {...commonProps} />
       case 'memory-crystal': return <MemoryCrystal {...commonProps} />
       case 'magic-market': return <MagicMarket {...commonProps} />
-      case 'drill-sheet': return <DrillSheet topicId={topic} onComplete={() => navigate(-1)} />
+      case 'drill-sheet': return <DrillSheet key={topic} topicId={topic} onComplete={() => navigate('/drills', { replace: true })} />
       default: return <SpellCasting {...commonProps} />
     }
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-indigo-950 via-purple-950 to-indigo-950">
-      <div className="absolute top-3 left-3 z-20">
-        <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>✕ Exit</Button>
-      </div>
+      {game !== 'drill-sheet' && (
+        <div className="absolute top-3 left-3 z-20">
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>✕ Exit</Button>
+        </div>
+      )}
       {renderGame()}
     </div>
   )

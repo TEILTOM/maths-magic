@@ -39,6 +39,21 @@ export interface PlayerProfile {
   viewedTricks: string[]
   yearsPlayed: YearGroup[]
   gameTypesPlayed: string[]
+  drillRecords?: Record<string, DrillRecord>
+  // fact key -> how tricky it is (wrong +2, right -1, removed at 0)
+  factMisses?: Record<string, number>
+}
+
+export interface DrillRecord {
+  bestScore: number
+  bestPassSecs: number | null
+  attempts: number
+  passed: boolean
+}
+
+export interface DrillResult {
+  newBestScore: boolean
+  newBestTime: boolean
 }
 
 // Tracks a game in progress so partial credit is awarded if the app is killed mid-game
@@ -76,6 +91,8 @@ export interface GameStoreState {
   clearLastAchievement: () => void
   clearLevelUp: () => void
   markTrickViewed: (trickId: string) => void
+  recordFact: (key: string, correct: boolean) => void
+  recordDrill: (id: string, score: number, secsTaken: number, passed: boolean) => DrillResult
   getTopicMastery: (topicId: TopicId) => number
   getYearMastery: (yearGroup: YearGroup) => number
   isYearUnlocked: (yearGroup: YearGroup) => boolean
@@ -307,6 +324,40 @@ export const useGameStore = create<GameStoreState>()(
             viewedTricks: [...s.profile.viewedTricks, trickId],
           } : null,
         }))
+      },
+
+      recordFact: (key, correct) => {
+        set(s => {
+          if (!s.profile) return {}
+          const misses = { ...(s.profile.factMisses ?? {}) }
+          const next = (misses[key] ?? 0) + (correct ? -1 : 2)
+          if (next <= 0) delete misses[key]
+          else misses[key] = Math.min(next, 6)
+          return { profile: { ...s.profile, factMisses: misses } }
+        })
+      },
+
+      recordDrill: (id, score, secsTaken, passed) => {
+        const { profile } = get()
+        if (!profile) return { newBestScore: false, newBestTime: false }
+        const prev = profile.drillRecords?.[id]
+        const newBestScore = !!prev && score > prev.bestScore
+        const newBestTime = passed && !!prev?.bestPassSecs && secsTaken < prev.bestPassSecs
+        const rec: DrillRecord = {
+          bestScore: Math.max(prev?.bestScore ?? 0, score),
+          bestPassSecs: passed
+            ? Math.min(prev?.bestPassSecs ?? Infinity, secsTaken)
+            : prev?.bestPassSecs ?? null,
+          attempts: (prev?.attempts ?? 0) + 1,
+          passed: (prev?.passed ?? false) || passed,
+        }
+        set(s => ({
+          profile: s.profile ? {
+            ...s.profile,
+            drillRecords: { ...(s.profile.drillRecords ?? {}), [id]: rec },
+          } : null,
+        }))
+        return { newBestScore, newBestTime }
       },
 
       getTopicMastery: (topicId) => {

@@ -24,6 +24,14 @@ export const DRILL_LEVELS: DrillLevel[] = [
   { table: 'squares', id: 'drill-squares', label: 'Squares & √Roots', emoji: '💎', nextLabel: 'Champion!', color: 'from-yellow-400 to-amber-500' },
 ]
 
+export const TRICKY_ID = 'drill-tricky'
+export const PASS_SCORE = 39 // out of 40
+
 export function getDrillLevel(id: string): DrillLevel | undefined {
   return DRILL_LEVELS.find(l => l.id === id)
+}
+
+// mastery fallback covers passes saved before drillRecords existed (39/40 ≈ 98%)
+export function isDrillPassed(record: { passed: boolean } | undefined, mastery: number): boolean {
+  return !!record?.passed || mastery >= 97
 }
