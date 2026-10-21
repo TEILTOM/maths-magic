@@ -1,9 +1,9 @@
 import { motion } from 'framer-motion'
-import { type ReactNode } from 'react'
+import { type ReactNode, type MouseEvent } from 'react'
 
 interface ButtonProps {
   children: ReactNode
-  onClick?: () => void
+  onClick?: (e: MouseEvent<HTMLButtonElement>) => void
   variant?: 'primary' | 'secondary' | 'success' | 'danger' | 'ghost' | 'gold'
   size?: 'sm' | 'md' | 'lg' | 'xl'
   disabled?: boolean

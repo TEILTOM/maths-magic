@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useGameStore } from '../store/useGameStore'
+import { playCorrect, playWrong } from '../utils/sound'
 import type { TopicId, Difficulty } from '../data/curriculum'
 import { getCharacter } from '../data/characters'
 import Button from '../components/ui/Button'
@@ -96,6 +97,7 @@ export default function MagicMarket({ topicId, difficulty, onComplete }: Props) 
       setFeedback('correct')
       setScore(s => s + 1)
       recordActiveAnswer(true)
+      playCorrect()
       setTimeout(() => {
         const newRound = round + 1
         setRound(newRound)
@@ -107,6 +109,7 @@ export default function MagicMarket({ topicId, difficulty, onComplete }: Props) 
     } else {
       setFeedback('incorrect')
       recordActiveAnswer(false)
+      playWrong()
       setTimeout(() => { setFeedback(null) }, 1000)
     }
   }

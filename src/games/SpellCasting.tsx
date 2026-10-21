@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useGameStore } from '../store/useGameStore'
+import { playCorrect, playWrong } from '../utils/sound'
 import { generateQuestion, type Question } from '../utils/questionGenerator'
 import type { TopicId, Difficulty } from '../data/curriculum'
 import { getCharacter } from '../data/characters'
@@ -71,6 +72,8 @@ export default function SpellCasting({ topicId, difficulty, onComplete }: Props)
     }
     // Keep localStorage in sync after every answer — survives swipe-up kills
     recordActiveAnswer(correct)
+    if (correct) playCorrect()
+    else playWrong()
 
     setPhase('feedback')
     setTimeout(() => {

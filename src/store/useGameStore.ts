@@ -42,6 +42,8 @@ export interface PlayerProfile {
   drillRecords?: Record<string, DrillRecord>
   // fact key -> how tricky it is (wrong +2, right -1, removed at 0)
   factMisses?: Record<string, number>
+  gameBests?: Record<string, number>
+  collection?: string[]
 }
 
 export interface DrillRecord {
@@ -93,6 +95,8 @@ export interface GameStoreState {
   markTrickViewed: (trickId: string) => void
   recordFact: (key: string, correct: boolean) => void
   recordDrill: (id: string, score: number, secsTaken: number, passed: boolean) => DrillResult
+  recordBest: (key: string, value: number) => boolean
+  addToCollection: (item: string) => void
   getTopicMastery: (topicId: TopicId) => number
   getYearMastery: (yearGroup: YearGroup) => number
   isYearUnlocked: (yearGroup: YearGroup) => boolean
@@ -358,6 +362,20 @@ export const useGameStore = create<GameStoreState>()(
           } : null,
         }))
         return { newBestScore, newBestTime }
+      },
+
+      recordBest: (key, value) => {
+        const prev = get().profile?.gameBests?.[key] ?? 0
+        if (value <= prev) return false
+        set(s => s.profile ? { profile: { ...s.profile, gameBests: { ...(s.profile.gameBests ?? {}), [key]: value } } } : {})
+        return prev > 0
+      },
+
+      addToCollection: (item) => {
+        set(s => {
+          if (!s.profile || s.profile.collection?.includes(item)) return {}
+          return { profile: { ...s.profile, collection: [...(s.profile.collection ?? []), item] } }
+        })
       },
 
       getTopicMastery: (topicId) => {

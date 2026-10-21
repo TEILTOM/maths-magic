@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useGameStore } from '../store/useGameStore'
+import { playCorrect, playWrong } from '../utils/sound'
 import { generateBatch } from '../utils/questionGenerator'
 import type { TopicId, Difficulty } from '../data/curriculum'
 import { getCharacter } from '../data/characters'
@@ -77,6 +78,7 @@ export default function MemoryCrystal({ topicId, difficulty, onComplete }: Props
           const newMatches = matches + 1
           setMatches(newMatches)
           recordActiveAnswer(true)
+          playCorrect()
           if (newMatches >= PAIRS) {
             const elapsed = Date.now() - startTime
             completeGame({ topicId, gameType: 'memory-crystal', score: PAIRS, totalQuestions: PAIRS, timeMs: elapsed })
@@ -89,6 +91,7 @@ export default function MemoryCrystal({ topicId, difficulty, onComplete }: Props
           setCards(cs => cs.map(c => newFlipped.includes(c.id) && !c.matched ? { ...c, flipped: false } : c))
           setFlipped([])
           recordActiveAnswer(false)
+          playWrong()
         }, 1200)
       }
     }

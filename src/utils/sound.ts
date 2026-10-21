@@ -18,6 +18,7 @@ export function unlockAudio() {
 }
 
 function tone(freq: number, start: number, dur: number, type: OscillatorType = 'sine', vol = 0.15) {
+  unlockAudio()
   if (!ctx) return
   const osc = ctx.createOscillator()
   const gain = ctx.createGain()
@@ -58,4 +59,22 @@ export function playFanfare() {
   if (isMuted()) return
   ;[523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.12, 0.3, 'triangle', 0.14))
   tone(1319, 0.5, 0.6, 'triangle', 0.12)
+}
+
+export function playPop() {
+  if (isMuted()) return
+  tone(520, 0, 0.06, 'sine', 0.18)
+  tone(1040, 0.03, 0.08, 'sine', 0.12)
+}
+
+export function playRoar() {
+  if (isMuted()) return
+  tone(90, 0, 0.5, 'sawtooth', 0.08)
+  tone(70, 0.1, 0.5, 'sawtooth', 0.06)
+}
+
+export function playHit() {
+  if (isMuted()) return
+  tone(300, 0, 0.08, 'square', 0.1)
+  tone(150, 0.05, 0.15, 'square', 0.08)
 }

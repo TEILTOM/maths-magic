@@ -7,6 +7,8 @@ import FractionFeast from '../games/FractionFeast'
 import MemoryCrystal from '../games/MemoryCrystal'
 import MagicMarket from '../games/MagicMarket'
 import DrillSheet from '../games/DrillSheet'
+import BubblePop from '../games/BubblePop'
+import MysteryPicture from '../games/MysteryPicture'
 import Button from '../components/ui/Button'
 import { getDifficultyForMastery } from '../utils/questionGenerator'
 
@@ -31,6 +33,8 @@ export default function GamePage() {
       case 'fraction-feast': return <FractionFeast {...commonProps} />
       case 'memory-crystal': return <MemoryCrystal {...commonProps} />
       case 'magic-market': return <MagicMarket {...commonProps} />
+      case 'bubble-pop': return <BubblePop topicId={topic} onComplete={() => navigate(-1)} />
+      case 'mystery-picture': return <MysteryPicture topicId={topic} onComplete={() => navigate(-1)} />
       case 'drill-sheet': return <DrillSheet key={topic} topicId={topic} onComplete={() => navigate('/drills', { replace: true })} />
       default: return <SpellCasting {...commonProps} />
     }

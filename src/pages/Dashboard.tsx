@@ -14,7 +14,9 @@ import ProgressBar from '../components/ui/ProgressBar'
 const GAME_TILES = [
   { id: 'spell-casting', label: 'Spell Casting', emoji: '⚡', description: 'Quick-fire arithmetic!', color: 'from-purple-500 to-indigo-600' },
   { id: 'number-bonds-potion', label: 'Potion Lab', emoji: '🧪', description: 'Brew number bonds!', color: 'from-green-500 to-teal-600' },
-  { id: 'times-table-quest', label: 'Times Tables', emoji: '🗺️', description: 'Dungeon adventure!', color: 'from-orange-500 to-red-600' },
+  { id: 'times-table-quest', label: 'Dragon Quest', emoji: '🐉', description: 'Beat the dragon!', color: 'from-orange-500 to-red-600' },
+  { id: 'bubble-pop', label: 'Bubble Pop', emoji: '🫧', description: 'Pop the answers!', color: 'from-sky-500 to-blue-600' },
+  { id: 'mystery-picture', label: 'Mystery Picture', emoji: '🖼️', description: 'Find hidden animals!', color: 'from-fuchsia-500 to-pink-600' },
   { id: 'fraction-feast', label: 'Fraction Feast', emoji: '🍕', description: 'Slice the pizza!', color: 'from-pink-500 to-rose-600' },
   { id: 'memory-crystal', label: 'Memory Crystals', emoji: '💎', description: 'Match the pairs!', color: 'from-cyan-500 to-blue-600' },
   { id: 'magic-market', label: 'Magic Market', emoji: '🛒', description: 'Coins & change!', color: 'from-yellow-500 to-amber-600' },
